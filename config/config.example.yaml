@@ -39,3 +39,27 @@ screenshot:
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
   file: "ai_assistant.log" 
+
+# New configuration section for actions
+actions:
+  auto_execute: false  # Whether to auto-execute keyboard shortcuts
+  confirmation_timeout: 10  # Seconds to wait for confirmation
+  notes_file: "notes.json"  # Path to the notes file
+
+# Model providers configuration
+models:
+  default: "gemini"  # Default model provider
+  providers:
+    gemini:
+      enabled: true
+      model: "gemini-2.0-flash"
+      api_key: "YOUR_GEMINI_API_KEY"
+    openai:
+      enabled: false
+      model: "gpt-4o"
+      api_key: "YOUR_OPENAI_API_KEY"
+
+# Plugin configuration
+plugins:
+  directory: "plugins"
+  enabled_plugins: []  # List of enabled plugins 

@@ -7,7 +7,7 @@ import os
 logger = logging.getLogger(__name__)
 
 class AIConnector:
-    """Handles interactions with the Gemini API."""
+    """Handles interactions with AI models."""
     
     def __init__(self, config_manager):
         self.config_manager = config_manager
@@ -16,6 +16,10 @@ class AIConnector:
         self.temperature = config_manager.get("ai", "temperature", 0.2)
         self.max_tokens = config_manager.get("ai", "max_tokens", 1024)
         self.system_prompt = self._load_system_prompt()
+        
+        # Initialize response processor
+        from core.response_processor import ResponseProcessor
+        self.response_processor = ResponseProcessor(config_manager)
         
         # Initialize Gemini API
         if self.api_key:
@@ -36,7 +40,7 @@ class AIConnector:
         # Default prompt in case file is not found
         default_prompt = (
             "You are an AI assistant that analyzes screenshots and user queries. "
-            "Provide concise answers optimized for text-to-speech conversion."
+            "Provide structured responses in JSON format with speech, notes, macro, and clipboard fields."
         )
         
         try:
@@ -54,7 +58,7 @@ class AIConnector:
     
     def process_query(self, question, screenshot_data, conversation_history=None):
         """
-        Process a query with Gemini, including screenshot data.
+        Process a query with the AI model, including screenshot data.
         
         Args:
             question (str): User's question
@@ -62,12 +66,17 @@ class AIConnector:
             conversation_history (list, optional): Previous conversation history
             
         Returns:
-            str: Response from Gemini
+            dict: Processed response with speech and action results
         """
         if not self.api_key:
             error_msg = "Gemini API key not configured. Please add your API key to the config file."
             logger.error(error_msg)
-            return error_msg
+            return {
+                "speech": error_msg,
+                "raw_response": error_msg,
+                "structured": False,
+                "actions_performed": []
+            }
         
         try:
             # Load screenshot data as PIL Image
@@ -94,11 +103,21 @@ class AIConnector:
             # Generate response with both text and image input
             response = model.generate_content([prompt, image])
             
-            answer = response.text
+            raw_response = response.text
             logger.info("Received response from Gemini API")
-            return answer
+            
+            # Process the response with the ResponseProcessor
+            processed_response = self.response_processor.process_response(raw_response, question)
+            
+            return processed_response
             
         except Exception as e:
-            error_msg = f"Error processing query with Gemini: {e}"
+            error_msg = f"Error processing query with AI model: {e}"
             logger.error(error_msg)
-            return f"Sorry, I encountered an error: {str(e)}"
+            
+            return {
+                "speech": f"Sorry, I encountered an error: {str(e)}",
+                "raw_response": error_msg,
+                "structured": False,
+                "actions_performed": []
+            }

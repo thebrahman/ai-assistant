@@ -1,0 +1,41 @@
+# AI Assistant Configuration
+
+# Keyboard shortcut settings
+keyboard:
+  shortcut_key: "ctrl+alt+a"  # Keyboard shortcut to activate the assistant
+  
+# Speech settings
+speech:
+  stt:
+    engine: "groq"  # Use Groq API for speech recognition
+    api_key: "YOUR_GROQ_API_KEY"  # Replace with your actual Groq API key
+    model: "whisper-large-v3-turbo"  # Groq model for STT
+  tts:
+    engine: "gtts"  # Text-to-speech engine (currently only gtts supported)
+    rate: 190  # Speaking rate (for some engines)
+    volume: 1.0  # Volume (0.0 to 1.0)
+    voice: null  # null will use default voice, or specify an index
+
+# AI settings
+ai:
+  model: "gemini-2.0-flash"
+  api_key: "YOUR_GEMINI_API_KEY"  # Replace with your actual API key
+  temperature: 0.2
+  max_tokens: 1024
+  system_prompt_file: "prompts/system_prompt.md"  # Path to system prompt file
+
+# Session settings
+session:
+  default_session_file: "ai_assistant_session.md"
+  sessions_directory: "sessions"
+  new_session_on_startup: true
+  
+# Screenshot settings
+screenshot:
+  format: "png"
+  quality: 85  # For JPEG only
+
+# Logging settings
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "ai_assistant.log" 

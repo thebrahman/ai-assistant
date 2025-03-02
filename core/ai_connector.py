@@ -8,6 +8,7 @@ class AIConnector:
     
     def __init__(self, config_manager):
         self.config_manager = config_manager
+        self.logger = logging.getLogger(__name__)
         
         # Initialize response processor
         from core.response_processor import ResponseProcessor
@@ -15,7 +16,7 @@ class AIConnector:
         
         # Initialize plugin manager if enabled
         self.plugin_manager = None
-        if config_manager.get("plugins", "enabled", False):
+        if config_manager.get("plugins", "enabled", default=False):
             from core.plugin_manager import PluginManager
             self.plugin_manager = PluginManager(config_manager)
             logger.info("Plugin system initialized")
@@ -38,17 +39,26 @@ class AIConnector:
             conversation_history (list, optional): Previous conversation history
             
         Returns:
-            dict: Processed response with speech and action results
+            dict: Processed response with the following structure:
+                {
+                    "speech": str,              # Text for TTS output
+                    "raw_response": str,        # Original response from the model
+                    "structured": bool,         # Whether the response was structured JSON
+                    "actions_performed": list,  # List of actions performed
+                    ... (other fields from the structured response)
+                }
         """
         if not self.model_connector:
             error_msg = "AI model connector not initialized. Please check your configuration."
-            logger.error(error_msg)
+            self.logger.error(error_msg)
             return {
                 "speech": error_msg,
                 "raw_response": error_msg,
                 "structured": False,
                 "actions_performed": []
             }
+        
+        raw_response = None
         
         try:
             # Process query through the model connector
@@ -58,10 +68,22 @@ class AIConnector:
                 conversation_history
             )
             
-            logger.info("Received raw response from model connector")
+            self.logger.info("Received raw response from model connector")
             
             # Process the response with the ResponseProcessor
-            processed_response = self.response_processor.process_response(raw_response, question)
+            try:
+                processed_response = self.response_processor.process_response(raw_response, question)
+            except Exception as response_error:
+                # Handle response processing errors specially
+                error_msg = f"Error processing AI response: {response_error}"
+                self.logger.error(error_msg)
+                return {
+                    "speech": f"I received a response but encountered an error while processing it. Please try again.",
+                    "raw_response": raw_response or "No response received",
+                    "structured": False,
+                    "error": str(response_error),
+                    "actions_performed": []
+                }
             
             # Run any plugins if enabled
             if self.plugin_manager and processed_response.get("structured", False):
@@ -74,29 +96,34 @@ class AIConnector:
                 
                 # Check if response specifies any plugins to run
                 if "plugins" in processed_response:
-                    plugins_to_run = processed_response["plugins"]
-                    plugin_results = {}
-                    
-                    if isinstance(plugins_to_run, list):
-                        for plugin_name in plugins_to_run:
-                            if self.plugin_manager.has_plugin(plugin_name):
-                                result = self.plugin_manager.execute_plugin(plugin_name, plugin_context)
-                                if result:
-                                    plugin_results[plugin_name] = result
-                    
-                    # Add plugin results to the response
-                    if plugin_results:
-                        processed_response["plugin_results"] = plugin_results
+                    try:
+                        plugins_to_run = processed_response["plugins"]
+                        plugin_results = {}
+                        
+                        if isinstance(plugins_to_run, list):
+                            for plugin_name in plugins_to_run:
+                                if self.plugin_manager.has_plugin(plugin_name):
+                                    result = self.plugin_manager.execute_plugin(plugin_name, plugin_context)
+                                    if result:
+                                        plugin_results[plugin_name] = result
+                        
+                        # Add plugin results to the response
+                        if plugin_results:
+                            processed_response["plugin_results"] = plugin_results
+                    except Exception as plugin_error:
+                        # Just log plugin errors but don't fail the entire request
+                        self.logger.error(f"Error running plugins: {plugin_error}")
+                        processed_response["plugin_error"] = str(plugin_error)
             
             return processed_response
             
         except Exception as e:
             error_msg = f"Error processing query with AI model: {e}"
-            logger.error(error_msg)
+            self.logger.error(error_msg)
             
             return {
                 "speech": f"Sorry, I encountered an error: {str(e)}",
-                "raw_response": error_msg,
+                "raw_response": raw_response or error_msg,
                 "structured": False,
                 "actions_performed": []
             }

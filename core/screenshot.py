@@ -15,8 +15,8 @@ class ScreenshotCapture:
         self.quality = 85
         
         if config_manager:
-            self.format = config_manager.get("screenshot", "format", "png")
-            self.quality = config_manager.get("screenshot", "quality", 85)
+            self.format = config_manager.get("screenshot", "format", default="png")
+            self.quality = config_manager.get("screenshot", "quality", default=85)
     
     def capture_active_window(self):
         """

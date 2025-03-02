@@ -42,12 +42,34 @@ class ConfigManager:
         sessions_dir = self.config.get('session', {}).get('sessions_directory', 'sessions')
         os.makedirs(sessions_dir, exist_ok=True)
     
-    def get(self, section, key=None, default=None):
-        """Get a configuration value."""
-        if key is None:
-            return self.config.get(section, default)
+    def get(self, section, *path_components, default=None):
+        """
+        Get a configuration value, optionally navigating through nested dictionaries.
         
-        return self.config.get(section, {}).get(key, default)
+        Args:
+            section (str): The top-level section in the config
+            *path_components: Variable length list of keys to navigate nested dictionaries
+            default: Default value if the path doesn't exist
+            
+        Returns:
+            The value at the specified path, or the default if not found
+        """
+        result = self.config.get(section, {})
+        
+        # If no path components, return the whole section (or default)
+        if not path_components:
+            return result if result is not None else default
+        
+        # Navigate through nested dictionaries
+        for key in path_components[:-1]:
+            result = result.get(key, {})
+            
+            # If we hit a non-dict value in the middle of the path, return default
+            if not isinstance(result, dict):
+                return default
+        
+        # Get the final value with the default
+        return result.get(path_components[-1], default)
     
     def get_shortcut_key(self):
         """Get the keyboard shortcut configuration."""

@@ -10,10 +10,10 @@ class OpenAIConnector(ModelConnector):
     
     def __init__(self, config_manager):
         super().__init__(config_manager)
-        self.api_key = config_manager.get("models", "providers", "openai", "api_key", "")
-        self.model_name = config_manager.get("models", "providers", "openai", "model", "gpt-4o")
-        self.temperature = config_manager.get("ai", "temperature", 0.2)
-        self.max_tokens = config_manager.get("ai", "max_tokens", 1024)
+        self.api_key = config_manager.get("models", "providers", "openai", "api_key", default="")
+        self.model_name = config_manager.get("models", "providers", "openai", "model", default="gpt-4o")
+        self.temperature = config_manager.get("ai", "temperature", default=0.2)
+        self.max_tokens = config_manager.get("ai", "max_tokens", default=1024)
         self.system_prompt = self._load_system_prompt()
         
         if not self.api_key:
@@ -26,7 +26,7 @@ class OpenAIConnector(ModelConnector):
         Returns:
             str: System prompt text or default prompt if file not found
         """
-        prompt_file = self.config_manager.get("ai", "system_prompt_file", "prompts/system_prompt.md")
+        prompt_file = self.config_manager.get("ai", "system_prompt_file", default="prompts/system_prompt.md")
         
         # Default prompt in case file is not found
         default_prompt = (

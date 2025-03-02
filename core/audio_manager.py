@@ -16,21 +16,30 @@ class AudioManager:
     
     def __init__(self, config_manager):
         self.config_manager = config_manager
+        self.logger = logging.getLogger(__name__)
+        
+        # Fix: Use named parameter 'default' for dictionaries
+        speech_config = config_manager.get("speech", default={})
+        stt_config = config_manager.get("speech", "stt", default={})
+        tts_config = config_manager.get("speech", "tts", default={})
+        
+        # STT configuration
+        self.stt_engine = stt_config.get("engine", "groq")
+        self.stt_api_key = stt_config.get("api_key", "")
+        self.stt_model = stt_config.get("model", "whisper-large-v3-turbo")
+        
+        # TTS configuration
+        self.tts_engine = tts_config.get("engine", "gtts")
+        self.tts_rate = tts_config.get("rate", 190)
+        self.tts_volume = tts_config.get("volume", 1.0)
+        self.tts_voice = tts_config.get("voice", None)
+        
+        # Audio recording configuration
+        self.channels = 1
+        self.sample_rate = 16000
         self.recording = False
         self.frames = []
-        self.sample_rate = 16000
-        self.channels = 1
-        
-        # Load STT configuration
-        self.stt_engine = config_manager.get("speech", "stt", {}).get("engine", "groq")
-        self.groq_api_key = config_manager.get("speech", "stt", {}).get("api_key", "")
-        self.groq_model = config_manager.get("speech", "stt", {}).get("model", "whisper-large-v3-turbo")
-        
-        # Load TTS configuration
-        self.tts_engine = config_manager.get("speech", "tts", {}).get("engine", "gtts")
-        self.tts_rate = config_manager.get("speech", "tts", {}).get("rate", 150)
-        self.tts_volume = config_manager.get("speech", "tts", {}).get("volume", 1.0)
-        self.tts_voice = config_manager.get("speech", "tts", {}).get("voice", None)
+        self.stream = None
         
         # Initialize pygame mixer for audio playback
         pygame.mixer.init()
@@ -123,7 +132,7 @@ class AudioManager:
         """
         try:
             # Check if API key is available
-            if not self.groq_api_key:
+            if not self.stt_api_key:
                 logger.error("Groq API key not configured")
                 return "Error: Groq API key not configured. Please add your API key to the config file."
             
@@ -134,13 +143,13 @@ class AudioManager:
             sf.write(tmp_path, audio_data, self.sample_rate)
             
             # Initialize Groq client
-            client = Groq(api_key=self.groq_api_key)
+            client = Groq(api_key=self.stt_api_key)
             
             # Use the audio transcriptions API
             with open(tmp_path, "rb") as audio_file:
                 transcription = client.audio.transcriptions.create(
                     file=(tmp_path, audio_file.read()),
-                    model=self.groq_model,
+                    model=self.stt_model,
                 )
             
             # Clean up temporary file

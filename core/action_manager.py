@@ -47,8 +47,15 @@ class ActionManager:
                 content = notes_data.get("content", "")
                 
                 if content:
-                    self.notes_manager.add_note(title, content, original_question)
-                    actions_performed.append({"type": "notes", "title": title})
+                    self.logger.info(f"Adding note with title: '{title}' and content length: {len(content)}")
+                    success = self.notes_manager.add_note(title, content, original_question)
+                    if success:
+                        actions_performed.append({"type": "notes", "title": title})
+                        self.logger.info(f"Successfully added note: '{title}'")
+                    else:
+                        self.logger.error(f"Failed to add note: '{title}'")
+                else:
+                    self.logger.warning("Note content is empty, skipping")
         
         # Handle macro execution
         if "macro" in parsed_response and parsed_response["macro"]:

@@ -27,47 +27,79 @@ classDiagram
         +_load_config()
         +_setup_logging()
         +_ensure_directories()
-        +get(section, key, default)
+        +get(section, *path_components, default)
         +get_shortcut_key()
+        +get_session_file()
+        +get_new_session_on_startup()
+        +get_gemini_api_key()
     }
 
     %% Core Components
     class InputManager {
+        -config_manager
         -shortcut_key
-        -callback_press
-        -callback_release
+        -keys
+        -currently_pressed
+        -shortcut_active
+        -suppress_key_events
         -listener
-        +__init__(shortcut_key, callback_press, callback_release)
+        -listener_thread
+        -on_press_callback
+        -on_release_callback
+        +__init__(config_manager, on_press, on_release)
+        +start()
         +start_listening()
+        +stop()
         +stop_listening()
-        +_on_press(key)
-        +_on_release(key)
+        +_parse_shortcut_key(shortcut_str)
+        +_on_key_press(key)
+        +_on_key_release(key)
     }
 
     class ScreenshotCapture {
+        -config_manager
+        -format
+        -quality
         -logger
+        +__init__(config_manager)
         +capture_active_window()
+        +save_screenshot(path)
     }
 
     class AudioManager {
         -config_manager
-        -logger
+        -stt_engine
+        -stt_api_key
+        -stt_model
+        -tts_engine
+        -tts_rate
+        -tts_volume
+        -tts_voice
+        -channels
+        -sample_rate
         -recording
+        -frames
+        -stream
+        -logger
         +__init__(config_manager)
         +start_recording()
         +stop_recording()
         +transcribe_audio(audio_data)
+        +_transcribe_with_groq(audio_data)
         +speak_text(text)
+        +_speak_with_gtts(text)
     }
 
     class SessionManager {
         -config_manager
+        -sessions_dir
+        -current_session_file
         -logger
-        -session_file
         +__init__(config_manager)
+        +_get_session_file()
+        +create_new_session()
+        +get_conversation_history(max_entries)
         +add_interaction(question, answer)
-        +get_conversation_history()
-        +new_session()
     }
 
     %% AI Components
@@ -75,15 +107,17 @@ classDiagram
         -config_manager
         -model_connector
         -response_processor
-        -system_prompt
+        -plugin_manager
         -logger
         +__init__(config_manager)
         +process_query(question, screenshot_data, conversation_history)
-        +_load_system_prompt()
     }
 
     class ModelConnector {
         <<abstract>>
+        -config_manager
+        -logger
+        +__init__(config_manager)
         +process_query(question, context_data, conversation_history)
     }
 
@@ -93,8 +127,16 @@ classDiagram
         -model_name
         -temperature
         -max_tokens
+        -system_prompt
+        -log_llm_responses
+        -llm_log_file
+        -max_log_size
+        -backup_count
+        -logger
         +__init__(config_manager)
+        +_load_system_prompt()
         +process_query(question, context_data, conversation_history)
+        +_log_llm_response(question, response)
     }
 
     class OpenAIConnector {
@@ -103,7 +145,10 @@ classDiagram
         -model_name
         -temperature
         -max_tokens
+        -system_prompt
+        -logger
         +__init__(config_manager)
+        +_load_system_prompt()
         +process_query(question, context_data, conversation_history)
     }
 
@@ -112,15 +157,24 @@ classDiagram
         +create_connector(config_manager)
     }
 
-    %% New Action Components
+    %% Response Processing Components
     class ResponseProcessor {
         -config_manager
         -action_manager
         -notification_manager
+        -plugins_enabled
+        -plugins_dir
+        -templates_dir
+        -log_llm_responses
         -logger
         +__init__(config_manager)
-        +process_response(response_text, question)
-        -_extract_json(text)
+        +process_response(raw_response, query)
+        +_extract_json(text)
+        +_copy_to_clipboard(text)
+        +_run_macro(macro_command)
+        +_log_response_processing(query, raw_response, json_data)
+        +_log_macro_processing(macro_data)
+        +_log_processing_error(query, raw_response, error_msg)
     }
 
     class ActionManager {
@@ -137,6 +191,7 @@ classDiagram
 
     class ClipboardUtil {
         -logger
+        +__init__()
         +copy_to_clipboard(text)
     }
 
@@ -156,6 +211,7 @@ classDiagram
         -logger
         +__init__(config_manager)
         +show_confirmation(action_description)
+        +show_notification(message)
     }
 
     class NotesManager {
@@ -172,23 +228,24 @@ classDiagram
     class PluginManager {
         -config_manager
         -plugins
+        -plugin_dir
         -logger
         +__init__(config_manager)
         +load_plugins()
         +execute_plugin(plugin_name, context)
+        +get_available_plugins()
+        +has_plugin(plugin_name)
     }
 
     class Plugin {
         <<abstract>>
         -config_manager
+        -logger
         +__init__(config_manager)
         +initialize()
         +execute(context)
-    }
-
-    class CustomPlugins {
-        -plugin_specific_properties
-        +plugin_specific_methods()
+        +name
+        +description
     }
 
     %% Relationships
@@ -201,6 +258,7 @@ classDiagram
     
     AIConnector *-- ModelConnector
     AIConnector *-- ResponseProcessor
+    AIConnector *-- PluginManager
     
     ModelConnector <|-- GeminiConnector
     ModelConnector <|-- OpenAIConnector
@@ -217,7 +275,5 @@ classDiagram
     ActionManager *-- NotesManager
     ActionManager *-- NotificationManager
     
-    PluginManager --o AIAssistant
-    Plugin <|-- CustomPlugins
     PluginManager o-- Plugin
 ``` 

@@ -10,11 +10,16 @@ class SessionManager:
     
     def __init__(self, config_manager):
         self.config_manager = config_manager
-        self.sessions_dir = config_manager.get("session", "sessions_directory", "sessions")
-        self.current_session_file = self._get_session_file()
+        self.logger = logging.getLogger(__name__)
         
-        # Ensure session directory exists
+        # Get the sessions directory from config with a default value
+        self.sessions_dir = config_manager.get("session", "sessions_directory", default="sessions")
+        
+        # Ensure the directory exists
         os.makedirs(self.sessions_dir, exist_ok=True)
+        
+        # Get the current session file
+        self.current_session_file = self._get_session_file()
     
     def _get_session_file(self):
         """

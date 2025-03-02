@@ -22,6 +22,9 @@ class AIAssistant:
     """Main AI Assistant application."""
     
     def __init__(self, config_path="config/config.yaml"):
+        # Create logger first so it's available throughout initialization
+        self.logger = logging.getLogger("AIAssistant")
+        
         # Ensure required directories exist
         self._ensure_directories()
         
@@ -47,15 +50,15 @@ class AIAssistant:
         # Set up signal handling for graceful shutdown
         signal.signal(signal.SIGINT, self._handle_signal)
         signal.signal(signal.SIGTERM, self._handle_signal)
-        
-        # Create logger
-        self.logger = logging.getLogger("AIAssistant")
     
     def _ensure_directories(self):
         """Ensure all required directories exist."""
         os.makedirs("config", exist_ok=True)
         os.makedirs("sessions", exist_ok=True)
         os.makedirs("prompts", exist_ok=True)
+        os.makedirs("logs", exist_ok=True)
+        os.makedirs("notes", exist_ok=True)
+        self.logger.info("Ensured required directories exist (config, sessions, prompts, logs, notes)")
     
     def start(self):
         """Start the AI Assistant."""
@@ -126,19 +129,44 @@ class AIAssistant:
         # Process with Gemini if we have a screenshot
         if self.current_screenshot:
             print("Sending to Gemini API...")
-            answer = self.ai_connector.process_query(
-                question,
-                self.current_screenshot,
-                history
-            )
             
-            print(f"Answer: \"{answer[:100]}{'...' if len(answer) > 100 else ''}\"")
+            # Suppress key events during AI processing and TTS to prevent conflicts
+            self.input_manager.suppress_key_events = True
             
-            # Save to markdown
-            self.session_manager.add_interaction(question, answer)
-            
-            # Speak the answer
-            self.audio_manager.speak_text(answer)
+            try:
+                # Get the processed response (dictionary)
+                response = self.ai_connector.process_query(
+                    question,
+                    self.current_screenshot,
+                    history
+                )
+                
+                # Extract the speech content for display and TTS
+                speech_content = response.get("speech", "")
+                
+                # Display a preview of the speech content
+                print(f"Answer: \"{speech_content[:100]}{'...' if len(speech_content) > 100 else ''}\"")
+                
+                # Display any actions performed
+                actions = response.get("actions_performed", [])
+                if actions:
+                    print("Actions performed:")
+                    for action in actions:
+                        action_type = action.get("action", "unknown")
+                        if action_type == "clipboard":
+                            print("- Copied content to clipboard")
+                        elif action_type == "macro":
+                            print(f"- Executed keyboard shortcut: {action.get('result', '')}")
+                
+                # Save the raw response to the session
+                raw_response = response.get("raw_response", speech_content)
+                self.session_manager.add_interaction(question, raw_response)
+                
+                # Speak the speech content
+                self.audio_manager.speak_text(speech_content)
+            finally:
+                # Always restore key event processing when done
+                self.input_manager.suppress_key_events = False
         else:
             print("Error: No screenshot captured")
     

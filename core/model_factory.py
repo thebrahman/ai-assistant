@@ -21,16 +21,16 @@ class ModelFactory:
         Raises:
             ValueError: If the specified model provider is not supported
         """
-        default_provider = config_manager.get("models", "default", "gemini")
+        default_provider = config_manager.get("models", "default", default="gemini")
         
         # Check if the specified provider is enabled
         provider_enabled = config_manager.get(
-            "models", "providers", default_provider, "enabled", True
+            "models", "providers", default_provider, "enabled", default=True
         )
         
         if not provider_enabled:
             # If the default provider is disabled, try to find an enabled one
-            providers = config_manager.get("models", "providers", {})
+            providers = config_manager.get("models", "providers", default={})
             for provider_name, provider_config in providers.items():
                 if provider_config.get("enabled", False):
                     logger.warning(

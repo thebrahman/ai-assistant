@@ -8,7 +8,7 @@ keyboard:
 speech:
   stt:
     engine: "groq"  # Use Groq API for speech recognition
-    api_key: "YOUR_GROQ_API_KEY"  # Replace with your actual Groq API key
+    api_key: "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"  # Replace with your actual Groq API key
     model: "whisper-large-v3-turbo"  # Groq model for STT
   tts:
     engine: "gtts"  # Text-to-speech engine (currently only gtts supported)
@@ -19,7 +19,7 @@ speech:
 # AI settings
 ai:
   model: "gemini-2.0-flash"
-  api_key: "YOUR_GEMINI_API_KEY"  # Replace with your actual API key
+  api_key: "AIzaSyA-FcX32B2XjOgOA9JO5UxLXHJ3J4yY1hU"  # Replace with your actual API key
   temperature: 0.2
   max_tokens: 1024
   system_prompt_file: "prompts/system_prompt.md"  # Path to system prompt file
@@ -38,28 +38,4 @@ screenshot:
 # Logging settings
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
-  file: "ai_assistant.log" 
-
-# New configuration section for actions
-actions:
-  auto_execute: false  # Whether to auto-execute keyboard shortcuts
-  confirmation_timeout: 10  # Seconds to wait for confirmation
-  notes_file: "notes.json"  # Path to the notes file
-
-# Model providers configuration
-models:
-  default: "gemini"  # Default model provider
-  providers:
-    gemini:
-      enabled: true
-      model: "gemini-2.0-flash"
-      api_key: "YOUR_GEMINI_API_KEY"
-    openai:
-      enabled: false
-      model: "gpt-4o"
-      api_key: "YOUR_OPENAI_API_KEY"
-
-# Plugin configuration
-plugins:
-  directory: "plugins"
-  enabled_plugins: []  # List of enabled plugins 
+  file: "ai_assistant.log"
